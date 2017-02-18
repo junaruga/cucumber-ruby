@@ -7,19 +7,35 @@ $:.unshift(File.dirname(__FILE__) + '/lib')
 Dir['gem_tasks/**/*.rake'].each { |rake| load rake }
 
 require 'rubocop/rake_task'
-RuboCop::RakeTask.new
+RuboCop::RakeTask.new do |t|
+  t.patterns = FileList[
+    'cucumber.gemspec',
+    'Gemfile',
+    'Rakefile',
+    'examples/**/*.rb',
+    'features/**/*.rb',
+    'gem_tasks/**/*.{rake,rb}',
+    'lib/**/*.rb',
+    'spec/**/*.rb',
+  ]
+end
 
-task :default => [:spec, :rubocop, :cucumber]
+require 'cucumber/rake/task'
+Cucumber::Rake::Task.new
 
-if ENV['TRAVIS']
+default_tasks = [:spec, :rubocop, :cucumber]
+
+if ENV['TRAVIS'] && RUBY_VERSION < '2.4'
   ENV['SIMPLECOV']  = 'ci'
   ENV['JRUBY_OPTS'] = [ENV['JRUBY_OPTS'], '--debug'].compact.join(' ')
 
   require 'coveralls/rake/task'
   Coveralls::RakeTask.new
 
-  task :default => [:spec, :rubocop, :cucumber, 'coveralls:push']
+  default_tasks << 'coveralls:push'
 end
+
+task :default => default_tasks
 
 require 'rake/clean'
 CLEAN.include %w(**/*.{log,pyc,rbc,tgz} doc)
